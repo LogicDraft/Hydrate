@@ -31,6 +31,7 @@ fun HydrateNavGraph(
     viewModel: HydrateViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     NavHost(navController = navController, startDestination = HydrateRoutes.Splash) {
         composable(HydrateRoutes.Splash) {
@@ -58,6 +59,8 @@ fun HydrateNavGraph(
                 onUndoLastLog = viewModel::undoLastLog,
                 showTabTips = uiState.showTabTips,
                 shouldCelebrateGoal = uiState.shouldCelebrateGoal,
+                errorMessage = errorMessage,
+                onClearErrorMessage = viewModel::clearErrorMessage,
                 onDismissTabTips = viewModel::dismissTabTips,
                 onCelebrationDisplayed = viewModel::acknowledgeGoalCelebrationShown,
                 onOpenSchedule = { navController.navigate(HydrateRoutes.Schedule) },

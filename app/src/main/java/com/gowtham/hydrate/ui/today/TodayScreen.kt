@@ -45,6 +45,8 @@ fun TodayScreen(
     onUndoLastLog: () -> Unit,
     showTabTips: Boolean = false,
     shouldCelebrateGoal: Boolean = false,
+    errorMessage: String? = null,
+    onClearErrorMessage: () -> Unit = {},
     onDismissTabTips: () -> Unit = {},
     onCelebrationDisplayed: () -> Unit = {},
 ) {
@@ -67,6 +69,31 @@ fun TodayScreen(
         }
     }
 
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            delay(4_000)
+            onClearErrorMessage()
+        }
+    }
+
+    var pendingLogAmount by remember { mutableStateOf<Int?>(null) }
+    var countdown by remember { mutableStateOf(3) }
+
+    LaunchedEffect(pendingLogAmount) {
+        if (pendingLogAmount != null) {
+            countdown = 3
+            while (countdown > 0) {
+                delay(1000)
+                countdown--
+            }
+            if (pendingLogAmount != null) {
+                onQuickAdd(pendingLogAmount!!)
+                pendingLogAmount = null
+                showUndo = true
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -75,6 +102,19 @@ fun TodayScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             HeaderSection(summary = uiState.todaySummary, streakDays = uiState.historySummary.currentStreak)
+
+            if (errorMessage != null) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
 
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
@@ -105,18 +145,9 @@ fun TodayScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                QuickAddButton(label = "+1 Cup", onClick = {
-                    onQuickAdd(uiState.preferences.cupSizeMl)
-                    showUndo = true
-                }, modifier = Modifier.weight(1f))
-                QuickAddButton(label = "+250 ml", onClick = {
-                    onQuickAdd(250)
-                    showUndo = true
-                }, modifier = Modifier.weight(1f))
-                QuickAddButton(label = "+500 ml", onClick = {
-                    onQuickAdd(500)
-                    showUndo = true
-                }, modifier = Modifier.weight(1f))
+                QuickAddButton(label = "+1 Cup", onClick = { pendingLogAmount = uiState.preferences.cupSizeMl }, modifier = Modifier.weight(1f))
+                QuickAddButton(label = "+250 ml", onClick = { pendingLogAmount = 250 }, modifier = Modifier.weight(1f))
+                QuickAddButton(label = "+500 ml", onClick = { pendingLogAmount = 500 }, modifier = Modifier.weight(1f))
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -171,6 +202,28 @@ fun TodayScreen(
                         showUndo = false
                     }) {
                         Text("Undo")
+                    }
+                }
+            }
+        }
+
+        if (pendingLogAmount != null) {
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                shape = MaterialTheme.shapes.extraLarge,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Logging in $countdown...", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    OutlinedButton(onClick = { pendingLogAmount = null }) {
+                        Text("Cancel")
                     }
                 }
             }

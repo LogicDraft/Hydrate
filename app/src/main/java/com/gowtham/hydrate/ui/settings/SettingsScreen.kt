@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.gowtham.hydrate.data.model.CupSize
+import com.gowtham.hydrate.data.model.ReminderAlertMode
 import com.gowtham.hydrate.data.model.UserPreferences
 import com.gowtham.hydrate.ui.HydrateUiState
 import java.time.LocalTime
@@ -48,6 +49,7 @@ fun SettingsScreen(
     var cupSize by remember { mutableIntStateOf(uiState.preferences.cupSizeMl) }
     var notificationsEnabled by remember { mutableStateOf(uiState.preferences.notificationsEnabled) }
     var snoozeMinutes by remember { mutableIntStateOf(uiState.preferences.snoozeMinutes) }
+    var alertMode by remember { mutableStateOf(uiState.preferences.reminderAlertMode) }
 
     Column(modifier = Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Settings", style = MaterialTheme.typography.displaySmall)
@@ -75,6 +77,11 @@ fun SettingsScreen(
                 AssistChip(onClick = { notificationsEnabled = !notificationsEnabled }, label = { Text(if (notificationsEnabled) "On" else "Off") })
                 AssistChip(onClick = { snoozeMinutes = 60 }, label = { Text("Snooze $snoozeMinutes min") })
             }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = alertMode == ReminderAlertMode.GENTLE_SOUND, onClick = { alertMode = ReminderAlertMode.GENTLE_SOUND }, label = { Text("Gentle Sound") })
+                FilterChip(selected = alertMode == ReminderAlertMode.PHONE_RINGTONE, onClick = { alertMode = ReminderAlertMode.PHONE_RINGTONE }, label = { Text("Phone Ringtone") })
+                FilterChip(selected = alertMode == ReminderAlertMode.VIBRATION_ONLY, onClick = { alertMode = ReminderAlertMode.VIBRATION_ONLY }, label = { Text("Vibration Only") })
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -91,6 +98,7 @@ fun SettingsScreen(
                         dailyGoalMl = dailyGoal,
                         cupSizeMl = if (cupSize == 0) 300 else cupSize,
                         notificationsEnabled = notificationsEnabled,
+                        reminderAlertMode = alertMode,
                         snoozeMinutes = snoozeMinutes,
                         onboarded = true,
                     ),

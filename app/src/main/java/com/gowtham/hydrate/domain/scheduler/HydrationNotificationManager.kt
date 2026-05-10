@@ -8,6 +8,7 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.gowtham.hydrate.MainActivity
@@ -218,21 +219,16 @@ class HydrationNotificationManager @Inject constructor(
     fun showLockScreenSummary(percent: Int, totalMl: Int, goalMl: Int) {
         ensureChannels()
 
-        val bar   = buildProgressBar(percent)
         val emoji = milestoneEmoji(percent)
-        val label = milestoneLabel(percent)
-
+        val shortTitle  = "$emoji Hydration Progress"
         val remainingMl = (goalMl - totalMl).coerceAtLeast(0)
-        val shortTitle  = "$emoji $percent% hydrated today"
-        val shortBody   = "$bar  $totalMl / $goalMl ml"
-        val expandedText = buildString {
-            appendLine("$emoji  $label")
-            appendLine()
-            appendLine("Progress  $bar  $percent%")
-            appendLine("Consumed  $totalMl ml")
-            appendLine("Goal      $goalMl ml")
-            if (remainingMl > 0) append("Remaining $remainingMl ml")
-            else append("You've hit your daily goal! 🎉")
+        val details = if (remainingMl > 0) "$totalMl / $goalMl ml ($remainingMl ml left)" else "Goal crushed! 🎉 ($totalMl ml)"
+
+        val remoteViews = RemoteViews(context.packageName, R.layout.widget_notification_summary).apply {
+            setTextViewText(R.id.widget_title, shortTitle)
+            setTextViewText(R.id.widget_details, details)
+            setTextViewText(R.id.widget_percentage, "$percent%")
+            setProgressBar(R.id.widget_progress, 100, percent.coerceIn(0, 100), false)
         }
 
         val openIntent = Intent(context, MainActivity::class.java).apply {
@@ -246,13 +242,8 @@ class HydrationNotificationManager @Inject constructor(
 
         val summary = NotificationCompat.Builder(context, CHANNEL_ID_SUMMARY)
             .setSmallIcon(R.drawable.ic_notification_drop)
-            .setContentTitle(shortTitle)
-            .setContentText(shortBody)
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText(expandedText)
-                    .setBigContentTitle(shortTitle),
-            )
+            .setCustomContentView(remoteViews)
+            .setCustomBigContentView(remoteViews)
             // ── Widget-style lock-screen behaviour ──────────────────────────
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)   // show full content on lock screen
             .setOngoing(true)           // cannot be dismissed by swipe

@@ -38,6 +38,7 @@ class HydrationAlarmReceiver : BroadcastReceiver() {
                         requestCode = requestCode,
                         slotTimestampMillis = slotTimestampMillis,
                         vibrationOnly = preferences.reminderAlertMode == ReminderAlertMode.VIBRATION_ONLY,
+                        phoneRingtone = preferences.reminderAlertMode == ReminderAlertMode.PHONE_RINGTONE,
                     )
                 }
             } finally {

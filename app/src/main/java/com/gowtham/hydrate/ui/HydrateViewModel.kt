@@ -52,6 +52,8 @@ class HydrateViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val weatherSuggestion = MutableStateFlow<String?>(null)
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
 
     val uiState: StateFlow<HydrateUiState> = combine(
         repository.preferences,
@@ -101,8 +103,48 @@ class HydrateViewModel @Inject constructor(
         }
     }
 
+    fun clearErrorMessage() {
+        _errorMessage.value = null
+    }
+
     fun quickAdd(amountMl: Int) {
         viewModelScope.launch {
+            val now = Instant.now()
+            val lastLog = repository.getLatestLogTimestamp()
+            
+            // Layer 1: Rate Limiting
+            if (lastLog != null) {
+                val minsSince = java.time.Duration.between(lastLog, now).toMinutes()
+                if (minsSince < 20) {
+                    _errorMessage.value = "You just logged. Wait 20 min before logging again."
+                    return@launch
+                }
+            }
+
+            // Layer 4: Daily Cap
+            val todayTotal = uiState.value.todaySummary.totalMl
+            val goal = uiState.value.todaySummary.goalMl
+            val maxCap = (goal * 1.2).toInt()
+            if (todayTotal + amountMl > maxCap) {
+                _errorMessage.value = "Daily cap reached. You cannot exceed 120% of your daily goal."
+                return@launch
+            }
+
+            // Layer 2: Schedule-Locked Logging
+            val schedule = uiState.value.schedule
+            if (schedule.isNotEmpty()) {
+                val closestSlot = schedule.minByOrNull { Math.abs(it.timestampMillis - now.toEpochMilli()) }
+                if (closestSlot != null) {
+                    val minsDiff = Math.abs(closestSlot.timestampMillis - now.toEpochMilli()) / 60_000
+                    if (minsDiff > 15) {
+                        val nextSlot = schedule.firstOrNull { it.timestampMillis > now.toEpochMilli() }
+                        val timeLabel = nextSlot?.timeLabel ?: "tomorrow"
+                        _errorMessage.value = "Outside logging window. Next slot at $timeLabel."
+                        return@launch
+                    }
+                }
+            }
+
             repository.logWater(amountMl)
             syncReminders()
         }
