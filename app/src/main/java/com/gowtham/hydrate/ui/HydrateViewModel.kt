@@ -19,6 +19,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Intent
+import com.gowtham.hydrate.receivers.HydrateWidgetProvider
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,6 +55,7 @@ class HydrateViewModel @Inject constructor(
     private val getWeatherAwareSuggestionUseCase: GetWeatherAwareSuggestionUseCase,
     private val scheduler: HydrationScheduler,
     private val notificationManager: HydrationNotificationManager,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val weatherSuggestion = MutableStateFlow<String?>(null)
@@ -98,7 +105,6 @@ class HydrateViewModel @Inject constructor(
 
     init {
         refreshWeatherSuggestion()
-        observeLockScreenSummary()
     }
 
     fun savePreferences(preferences: UserPreferences) {
@@ -216,6 +222,13 @@ class HydrateViewModel @Inject constructor(
         scheduler.cancelAllReminders()
         scheduler.scheduleDailyReminders(preferences, schedule)
         scheduler.scheduleMidnightReschedule()
+
+        val intent = Intent(context, HydrateWidgetProvider::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            val ids = AppWidgetManager.getInstance(context).getAppWidgetIds(ComponentName(context, HydrateWidgetProvider::class.java))
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+        }
+        context.sendBroadcast(intent)
     }
 
     private fun refreshWeatherSuggestion() {
@@ -224,15 +237,4 @@ class HydrateViewModel @Inject constructor(
         }
     }
 
-    private fun observeLockScreenSummary() {
-        viewModelScope.launch {
-            uiState.collect { state ->
-                notificationManager.showLockScreenSummary(
-                    percent = state.todaySummary.percent,
-                    totalMl = state.todaySummary.totalMl,
-                    goalMl = state.todaySummary.goalMl,
-                )
-            }
-        }
-    }
 }

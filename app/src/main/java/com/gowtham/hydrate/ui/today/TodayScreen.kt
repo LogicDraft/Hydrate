@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -98,50 +102,53 @@ fun TodayScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             HeaderSection(summary = uiState.todaySummary, streakDays = uiState.historySummary.currentStreak)
 
             if (errorMessage != null) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
                 ) {
                     Text(
                         text = errorMessage,
                         color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
 
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                shape = MaterialTheme.shapes.extraLarge,
-                modifier = Modifier.fillMaxWidth(),
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
             ) {
+                ProgressRing(progress = uiState.todaySummary.percent / 100f, size = 280.dp, strokeWidth = 14.dp)
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    ProgressRing(progress = uiState.todaySummary.percent / 100f, size = 220.dp, strokeWidth = 18.dp)
-                    Text("${uiState.todaySummary.totalMl} / ${uiState.todaySummary.goalMl} ml", style = MaterialTheme.typography.headlineMedium)
-                    Text("${uiState.todaySummary.percent}% complete", color = MaterialTheme.colorScheme.secondary)
-                    Text(uiState.todaySummary.message, style = MaterialTheme.typography.titleLarge)
-                    ReminderCountdown(
-                        label = uiState.todaySummary.nextReminderLabel,
-                        countdown = uiState.todaySummary.nextReminderCountdown,
-                    )
-                    uiState.todaySummary.carryOverSuggestion?.let { carryOver ->
-                        Text(carryOver, color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodyMedium)
-                    }
-                    uiState.todaySummary.weatherSuggestion?.let { weather ->
-                        Text(weather, color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodySmall)
-                    }
+                    Text("${uiState.todaySummary.percent}%", style = MaterialTheme.typography.displayLarge)
+                    Text("${uiState.todaySummary.totalMl} / ${uiState.todaySummary.goalMl} ml", color = MaterialTheme.colorScheme.secondary)
                 }
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(uiState.todaySummary.message, style = MaterialTheme.typography.titleLarge)
+                ReminderCountdown(
+                    label = uiState.todaySummary.nextReminderLabel,
+                    countdown = uiState.todaySummary.nextReminderCountdown,
+                )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -155,8 +162,6 @@ fun TodayScreen(
                 StatCard(title = "Average", value = "${uiState.historySummary.averageMl} ml", modifier = Modifier.weight(1f))
                 StatCard(title = "Best", value = "${uiState.historySummary.bestDayMl} ml", modifier = Modifier.weight(1f))
             }
-
-            StreakBadge(text = "${uiState.historySummary.currentStreak} day streak")
 
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f)),
@@ -175,11 +180,15 @@ fun TodayScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onOpenSchedule, modifier = Modifier.weight(1f)) { Text("Schedule") }
                 OutlinedButton(onClick = onOpenHistory, modifier = Modifier.weight(1f)) { Text("History") }
                 Button(onClick = onOpenSettings, modifier = Modifier.weight(1f)) { Text("Settings") }
             }
+            
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
         if (showUndo) {

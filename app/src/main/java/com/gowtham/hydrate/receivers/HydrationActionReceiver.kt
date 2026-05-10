@@ -12,6 +12,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import java.time.Instant
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 
 class HydrationActionReceiver : BroadcastReceiver() {
 
@@ -39,13 +41,12 @@ class HydrationActionReceiver : BroadcastReceiver() {
                         )
                         scheduler.scheduleDailyReminders(updatedPreferences, schedule)
                         scheduler.scheduleMidnightReschedule()
-                        val totalMl = repository.todayLogs.first().sumOf { it.amountMl }
-                        val percent = if (updatedPreferences.dailyGoalMl > 0) {
-                            ((totalMl * 100.0) / updatedPreferences.dailyGoalMl).toInt().coerceIn(0, 200)
-                        } else {
-                            0
+                        val updateIntent = Intent(context, HydrateWidgetProvider::class.java).apply {
+                            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                            val ids = AppWidgetManager.getInstance(context).getAppWidgetIds(ComponentName(context, HydrateWidgetProvider::class.java))
+                            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
                         }
-                        notificationManager.showLockScreenSummary(percent = percent, totalMl = totalMl, goalMl = updatedPreferences.dailyGoalMl)
+                        context.sendBroadcast(updateIntent)
                     }
                     HydrationNotificationManager.ACTION_SNOOZE -> {
                         val snoozeMillis = 15 * 60_000L
@@ -69,13 +70,12 @@ class HydrationActionReceiver : BroadcastReceiver() {
                             )
                             scheduler.scheduleDailyReminders(updatedPreferences, schedule)
                             scheduler.scheduleMidnightReschedule()
-                            val totalMl = repository.todayLogs.first().sumOf { it.amountMl }
-                            val percent = if (updatedPreferences.dailyGoalMl > 0) {
-                                ((totalMl * 100.0) / updatedPreferences.dailyGoalMl).toInt().coerceIn(0, 200)
-                            } else {
-                                0
+                            val updateIntent = Intent(context, HydrateWidgetProvider::class.java).apply {
+                                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                                val ids = AppWidgetManager.getInstance(context).getAppWidgetIds(ComponentName(context, HydrateWidgetProvider::class.java))
+                                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
                             }
-                            notificationManager.showLockScreenSummary(percent = percent, totalMl = totalMl, goalMl = updatedPreferences.dailyGoalMl)
+                            context.sendBroadcast(updateIntent)
                         }
                     }
                 }

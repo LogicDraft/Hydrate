@@ -13,6 +13,7 @@ import com.gowtham.hydrate.ui.HydrateViewModel
 import com.gowtham.hydrate.ui.history.HistoryScreen
 import com.gowtham.hydrate.ui.onboarding.OnboardingScreen
 import com.gowtham.hydrate.ui.schedule.ScheduleScreen
+import com.gowtham.hydrate.ui.settings.AboutScreen
 import com.gowtham.hydrate.ui.settings.SettingsScreen
 import com.gowtham.hydrate.ui.today.TodayScreen
 
@@ -23,6 +24,7 @@ object HydrateRoutes {
     const val Schedule = "schedule"
     const val History = "history"
     const val Settings = "settings"
+    const val About = "about"
 }
 
 @Composable
@@ -84,7 +86,11 @@ fun HydrateNavGraph(
                 onResetToday = viewModel::resetToday,
                 onEraseData = viewModel::eraseAllData,
                 onBack = { navController.popBackStack() },
+                onOpenAbout = { navController.navigate(HydrateRoutes.About) },
             )
+        }
+        composable(HydrateRoutes.About) {
+            AboutScreen(onBack = { navController.popBackStack() })
         }
     }
 }
