@@ -12,6 +12,7 @@ enum class CupSize(val milliliters: Int, val label: String) {
 enum class ReminderAlertMode {
     GENTLE_SOUND,
     VIBRATION_ONLY,
+    PHONE_RINGTONE,
 }
 
 data class UserPreferences(
