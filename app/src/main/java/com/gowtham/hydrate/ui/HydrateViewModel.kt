@@ -18,7 +18,6 @@ import java.time.Instant
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -92,7 +91,7 @@ class HydrateViewModel @Inject constructor(
 
     private suspend fun syncReminders() {
         val preferences = repository.getPreferencesSnapshot()
-        val logs = repository.todayLogs.map { it }.stateIn(viewModelScope).value
+        val logs = uiState.value.todayLogs
         val schedule = generateScheduleUseCase(preferences, logs, Instant.now())
         scheduler.cancelAllReminders()
         scheduler.scheduleDailyReminders(preferences, schedule)

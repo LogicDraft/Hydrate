@@ -17,57 +17,33 @@ If you are developing a production application, we recommend updating the config
 
 ```js
 export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+  # Hydrate
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+  Hydrate is a premium monochrome hydration tracker for Android built with Kotlin, Jetpack Compose, Material 3, Room, DataStore, Hilt, WorkManager, and AlarmManager.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+  ## Highlights
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+  - Personalized reminder schedule from wake time, sleep time, daily goal, and cup size.
+  - Dark, minimal black-and-white UI with glass-like cards and rounded surfaces.
+  - Today, Schedule, History, and Settings screens with reusable Compose components.
+  - Room-backed water logs and daily stats.
+  - DataStore-backed preferences for onboarding and reminder settings.
+  - Exact reminder alarms with notification actions for logging and snoozing.
 
-```js
+  ## Project Structure
+
+  - `app/src/main/java/com/gowtham/hydrate/data` for persistence and models.
+  - `app/src/main/java/com/gowtham/hydrate/domain` for schedule and analytics use cases.
+  - `app/src/main/java/com/gowtham/hydrate/ui` for the Compose UI and theme.
+  - `app/src/main/java/com/gowtham/hydrate/receivers` and `app/src/main/java/com/gowtham/hydrate/workers` for reminder delivery.
+
+  ## Notes
+
+  - The app uses built-in fonts in this scaffold so it compiles without extra asset setup. You can drop DM Sans and DM Mono into `app/src/main/res/font` later if you want pixel-perfect typography.
+  - The launcher icon is generated from local vector resources and matches the requested monochrome direction.
+
+  ## Build
+
+  - Open the folder in Android Studio and sync the Gradle project.
+  - If you want to build from the command line, add the standard Gradle wrapper jar under `gradle/wrapper/` first.
 // eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```

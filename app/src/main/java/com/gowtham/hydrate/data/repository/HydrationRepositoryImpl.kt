@@ -13,6 +13,7 @@ import com.gowtham.hydrate.data.local.WaterLogEntity
 import com.gowtham.hydrate.data.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

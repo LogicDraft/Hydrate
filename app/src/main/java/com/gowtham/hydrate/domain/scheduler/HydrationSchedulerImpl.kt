@@ -36,7 +36,7 @@ class HydrationSchedulerImpl @Inject constructor(
             }
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                slot.timestampMillis.hashCode() + index,
+                index,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
@@ -76,6 +76,16 @@ class HydrationSchedulerImpl @Inject constructor(
     }
 
     override fun cancelAllReminders() {
+        repeat(60) { requestCode ->
+            val intent = Intent(context, HydrationAlarmReceiver::class.java)
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            alarmManager.cancel(pendingIntent)
+        }
         WorkManager.getInstance(context).cancelUniqueWork(MidnightRescheduleWorker.WORK_NAME)
     }
 }
