@@ -18,6 +18,9 @@ interface WaterLogDao {
     @Query("SELECT * FROM water_logs ORDER BY timestampMillis DESC LIMIT 1")
     suspend fun getLatest(): WaterLogEntity?
 
+    @Query("DELETE FROM water_logs WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: WaterLogEntity): Long
 

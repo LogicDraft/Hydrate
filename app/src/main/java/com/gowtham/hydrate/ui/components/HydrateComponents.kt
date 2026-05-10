@@ -81,17 +81,26 @@ fun QuickAddButton(label: String, onClick: () -> Unit, modifier: Modifier = Modi
 }
 
 @Composable
-fun TimelineItem(slot: ReminderSlot) {
+fun TimelineItem(slot: ReminderSlot, onClick: () -> Unit = {}) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
+                slot.skipped -> MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
                 slot.current -> MaterialTheme.colorScheme.surfaceVariant
                 slot.upcoming -> MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
                 else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
             },
         ),
-        border = BorderStroke(1.dp, if (slot.current) Color.White else MaterialTheme.colorScheme.outline),
+        border = BorderStroke(
+            1.dp,
+            when {
+                slot.skipped -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                slot.current -> Color.White
+                else -> MaterialTheme.colorScheme.outline
+            },
+        ),
         shape = RoundedCornerShape(24.dp),
     ) {
         Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -101,11 +110,12 @@ fun TimelineItem(slot: ReminderSlot) {
             }
             Text(
                 text = when {
+                    slot.skipped -> "Skipped"
                     slot.completed -> "✓"
                     slot.current -> "Current"
                     else -> "Upcoming"
                 },
-                color = if (slot.completed) Color.White else MaterialTheme.colorScheme.secondary,
+                color = if (slot.completed || slot.skipped) Color.White else MaterialTheme.colorScheme.secondary,
             )
         }
     }

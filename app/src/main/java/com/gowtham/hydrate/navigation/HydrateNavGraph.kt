@@ -55,12 +55,20 @@ fun HydrateNavGraph(
             TodayScreen(
                 uiState = uiState,
                 onQuickAdd = viewModel::quickAdd,
+                onUndoLastLog = viewModel::undoLastLog,
                 onOpenSchedule = { navController.navigate(HydrateRoutes.Schedule) },
                 onOpenHistory = { navController.navigate(HydrateRoutes.History) },
                 onOpenSettings = { navController.navigate(HydrateRoutes.Settings) },
             )
         }
-        composable(HydrateRoutes.Schedule) { ScheduleScreen(uiState = uiState, onBack = { navController.popBackStack() }) }
+        composable(HydrateRoutes.Schedule) {
+            ScheduleScreen(
+                uiState = uiState,
+                onSnooze = viewModel::snoozeSlot,
+                onSkip = viewModel::skipSlot,
+                onBack = { navController.popBackStack() },
+            )
+        }
         composable(HydrateRoutes.History) { HistoryScreen(uiState = uiState, onBack = { navController.popBackStack() }) }
         composable(HydrateRoutes.Settings) {
             SettingsScreen(

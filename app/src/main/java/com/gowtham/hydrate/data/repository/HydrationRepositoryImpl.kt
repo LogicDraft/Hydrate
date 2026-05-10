@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.gowtham.hydrate.data.local.DailyStatsDao
 import com.gowtham.hydrate.data.local.DailyStatsEntity
 import com.gowtham.hydrate.data.local.WaterLogDao
@@ -34,6 +35,7 @@ class HydrationRepositoryImpl @Inject constructor(
     private val notificationsEnabledKey = booleanPreferencesKey("notifications_enabled")
     private val snoozeMinutesKey = intPreferencesKey("snooze_minutes")
     private val onboardedKey = booleanPreferencesKey("onboarded")
+    private val skippedSlotsKey = stringSetPreferencesKey("skipped_slots")
 
     private val zoneId = ZoneId.systemDefault()
     private val todayStartMillis = LocalDate.now(zoneId).atStartOfDay(zoneId).toInstant().toEpochMilli()
@@ -49,6 +51,10 @@ class HydrationRepositoryImpl @Inject constructor(
             snoozeMinutes = preferences[snoozeMinutesKey] ?: 60,
             onboarded = preferences[onboardedKey] ?: false,
         )
+    }
+
+    override val skippedReminderTimestamps: Flow<Set<Long>> = dataStore.data.map { preferences ->
+        preferences[skippedSlotsKey].orEmpty().mapNotNull { it.toLongOrNull() }.toSet()
     }
 
     override val todayLogs: Flow<List<WaterLogEntity>> = waterLogDao.observeLogsBetween(todayStartMillis, tomorrowStartMillis)
@@ -81,10 +87,43 @@ class HydrationRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun undoLastLog(): WaterLogEntity? {
+        val latest = waterLogDao.getLatest() ?: return null
+        waterLogDao.deleteById(latest.id)
+
+        val localDate = Instant.ofEpochMilli(latest.timestampMillis).atZone(zoneId).toLocalDate()
+        val start = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val end = localDate.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val remaining = waterLogDao.getLogsBetween(start, end)
+        val currentPreferences = getPreferencesSnapshot()
+        val total = remaining.sumOf { it.amountMl }
+        dailyStatsDao.upsert(
+            DailyStatsEntity(
+                date = localDate.toString(),
+                totalMl = total,
+                goalCompleted = total >= currentPreferences.dailyGoalMl,
+            ),
+        )
+        return latest
+    }
+
+    override suspend fun skipReminderSlot(timestampMillis: Long) {
+        dataStore.edit { stored ->
+            stored[skippedSlotsKey] = stored[skippedSlotsKey].orEmpty() + timestampMillis.toString()
+        }
+    }
+
+    override suspend fun clearSkippedReminderSlots() {
+        dataStore.edit { stored ->
+            stored[skippedSlotsKey] = emptySet()
+        }
+    }
+
     override suspend fun clearToday() {
         waterLogDao.deleteBetween(todayStartMillis, tomorrowStartMillis)
         val today = LocalDate.now(zoneId).toString()
         dailyStatsDao.upsert(DailyStatsEntity(date = today, totalMl = 0, goalCompleted = false))
+        clearSkippedReminderSlots()
     }
 
     override suspend fun eraseAllData() {

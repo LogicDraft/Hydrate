@@ -3,10 +3,8 @@ package com.gowtham.hydrate.receivers
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import androidx.core.content.edit
 import com.gowtham.hydrate.di.HydrateEntryPoint
 import com.gowtham.hydrate.domain.scheduler.HydrationNotificationManager
-import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +13,6 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
 
-@AndroidEntryPoint
 class HydrationAlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {

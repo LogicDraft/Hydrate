@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.gowtham.hydrate.di.HydrateEntryPoint
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.flow.first
 
 class MidnightRescheduleWorker(
     context: Context,
@@ -16,7 +17,12 @@ class MidnightRescheduleWorker(
         val repository = entryPoint.repository()
         val scheduler = entryPoint.scheduler()
         val preferences = repository.getPreferencesSnapshot()
-        val schedule = entryPoint.generateScheduleUseCase().invoke(preferences, emptyList())
+        val schedule = entryPoint.generateScheduleUseCase().invoke(
+            preferences,
+            repository.todayLogs.first(),
+            repository.skippedReminderTimestamps.first(),
+        )
+        repository.clearSkippedReminderSlots()
         scheduler.scheduleDailyReminders(preferences, schedule)
         scheduler.scheduleMidnightReschedule()
         return Result.success()

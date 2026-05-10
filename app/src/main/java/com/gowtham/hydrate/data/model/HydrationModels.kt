@@ -27,6 +27,7 @@ data class ReminderSlot(
     val completed: Boolean,
     val current: Boolean,
     val upcoming: Boolean,
+    val skipped: Boolean = false,
 )
 
 data class TodaySummary(

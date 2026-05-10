@@ -8,11 +8,15 @@ import java.time.Instant
 
 interface HydrationRepository {
     val preferences: Flow<UserPreferences>
+    val skippedReminderTimestamps: Flow<Set<Long>>
     val todayLogs: Flow<List<WaterLogEntity>>
     val recentStats: Flow<List<DailyStatsEntity>>
 
     suspend fun savePreferences(preferences: UserPreferences)
     suspend fun logWater(amountMl: Int, timestamp: Instant = Instant.now())
+    suspend fun undoLastLog(): WaterLogEntity?
+    suspend fun skipReminderSlot(timestampMillis: Long)
+    suspend fun clearSkippedReminderSlots()
     suspend fun clearToday()
     suspend fun eraseAllData()
     suspend fun updateOnboardingComplete()

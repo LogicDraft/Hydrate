@@ -6,6 +6,7 @@ import com.gowtham.hydrate.data.model.UserPreferences
 interface HydrationScheduler {
     fun scheduleDailyReminders(preferences: UserPreferences, schedule: List<ReminderSlot>)
     fun scheduleSnoozedReminder(amountMl: Int, triggerAtMillis: Long)
+    fun cancelSlotReminder(slotTimestampMillis: Long)
     fun scheduleMidnightReschedule()
     fun cancelAllReminders()
 }

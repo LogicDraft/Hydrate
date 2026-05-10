@@ -15,6 +15,7 @@ import com.gowtham.hydrate.domain.usecase.CalculateTodaySummaryUseCase
 import com.gowtham.hydrate.domain.usecase.GenerateScheduleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -43,10 +44,11 @@ class HydrateViewModel @Inject constructor(
 
     val uiState: StateFlow<HydrateUiState> = combine(
         repository.preferences,
+        repository.skippedReminderTimestamps,
         repository.todayLogs,
         repository.recentStats,
-    ) { preferences, logs, stats ->
-        val schedule = generateScheduleUseCase(preferences, logs, Instant.now())
+    ) { preferences, skipped, logs, stats ->
+        val schedule = generateScheduleUseCase(preferences, logs, skipped, Instant.now())
         val historySummary = calculateHistorySummaryUseCase(stats)
         val todaySummary = calculateTodaySummaryUseCase(preferences, logs, schedule, historySummary, Instant.now())
         HydrateUiState(
@@ -75,6 +77,30 @@ class HydrateViewModel @Inject constructor(
         }
     }
 
+    fun undoLastLog() {
+        viewModelScope.launch {
+            repository.undoLastLog()
+            syncReminders()
+        }
+    }
+
+    fun snoozeSlot(slotTimestampMillis: Long, amountMl: Int) {
+        viewModelScope.launch {
+            repository.skipReminderSlot(slotTimestampMillis)
+            scheduler.cancelSlotReminder(slotTimestampMillis)
+            scheduler.scheduleSnoozedReminder(amountMl = amountMl, triggerAtMillis = System.currentTimeMillis() + 15 * 60_000L)
+            syncReminders()
+        }
+    }
+
+    fun skipSlot(slotTimestampMillis: Long) {
+        viewModelScope.launch {
+            repository.skipReminderSlot(slotTimestampMillis)
+            scheduler.cancelSlotReminder(slotTimestampMillis)
+            syncReminders()
+        }
+    }
+
     fun resetToday() {
         viewModelScope.launch {
             repository.clearToday()
@@ -92,7 +118,8 @@ class HydrateViewModel @Inject constructor(
     private suspend fun syncReminders() {
         val preferences = repository.getPreferencesSnapshot()
         val logs = uiState.value.todayLogs
-        val schedule = generateScheduleUseCase(preferences, logs, Instant.now())
+        val skipped = repository.skippedReminderTimestamps.first()
+        val schedule = generateScheduleUseCase(preferences, logs, skipped, Instant.now())
         scheduler.cancelAllReminders()
         scheduler.scheduleDailyReminders(preferences, schedule)
         scheduler.scheduleMidnightReschedule()

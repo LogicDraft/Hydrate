@@ -24,6 +24,7 @@ class HydrationNotificationManager @Inject constructor(
         const val NOTIFICATION_ID = 7001
         const val ACTION_I_DRANK = "com.gowtham.hydrate.action.I_DRANK"
         const val ACTION_SNOOZE = "com.gowtham.hydrate.action.SNOOZE"
+        const val ACTION_SKIP = "com.gowtham.hydrate.action.SKIP"
         const val EXTRA_AMOUNT_ML = "extra_amount_ml"
         const val EXTRA_REQUEST_CODE = "extra_request_code"
     }
@@ -76,6 +77,17 @@ class HydrationNotificationManager @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val skipIntent = Intent(context, com.gowtham.hydrate.receivers.HydrationActionReceiver::class.java).apply {
+            action = ACTION_SKIP
+            putExtra(EXTRA_REQUEST_CODE, requestCode)
+        }
+        val skipPendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode + 30_000,
+            skipIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_drop)
             .setContentTitle("Time to Hydrate")
@@ -84,7 +96,8 @@ class HydrationNotificationManager @Inject constructor(
             .setContentIntent(openPendingIntent)
             .setAutoCancel(true)
             .addAction(0, "I Drank", drankPendingIntent)
-            .addAction(0, "Snooze 1 Hour", snoozePendingIntent)
+            .addAction(0, "Snooze 15 Min", snoozePendingIntent)
+            .addAction(0, "Skip", skipPendingIntent)
             .build()
 
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID + requestCode, notification)

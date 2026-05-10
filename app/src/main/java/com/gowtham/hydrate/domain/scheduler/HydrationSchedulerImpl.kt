@@ -32,11 +32,11 @@ class HydrationSchedulerImpl @Inject constructor(
             val intent = Intent(context, HydrationAlarmReceiver::class.java).apply {
                 putExtra(HydrationAlarmReceiver.EXTRA_AMOUNT_ML, slot.amountMl)
                 putExtra(HydrationAlarmReceiver.EXTRA_TIMESTAMP_MILLIS, slot.timestampMillis)
-                putExtra(HydrationAlarmReceiver.EXTRA_REQUEST_CODE, index)
+                putExtra(HydrationAlarmReceiver.EXTRA_REQUEST_CODE, requestCodeFor(slot.timestampMillis))
             }
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                index,
+                requestCodeFor(slot.timestampMillis),
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
@@ -52,11 +52,22 @@ class HydrationSchedulerImpl @Inject constructor(
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            triggerAtMillis.hashCode(),
+            requestCodeFor(triggerAtMillis),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+    }
+
+    override fun cancelSlotReminder(slotTimestampMillis: Long) {
+        val intent = Intent(context, HydrationAlarmReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            requestCodeFor(slotTimestampMillis),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        alarmManager.cancel(pendingIntent)
     }
 
     override fun scheduleMidnightReschedule() {
@@ -76,7 +87,7 @@ class HydrationSchedulerImpl @Inject constructor(
     }
 
     override fun cancelAllReminders() {
-        repeat(60) { requestCode ->
+        repeat(120) { requestCode ->
             val intent = Intent(context, HydrationAlarmReceiver::class.java)
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -88,4 +99,6 @@ class HydrationSchedulerImpl @Inject constructor(
         }
         WorkManager.getInstance(context).cancelUniqueWork(MidnightRescheduleWorker.WORK_NAME)
     }
+
+    private fun requestCodeFor(timestampMillis: Long): Int = (timestampMillis xor (timestampMillis ushr 32)).toInt()
 }

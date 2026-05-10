@@ -4,8 +4,6 @@ import com.gowtham.hydrate.data.local.WaterLogEntity
 import com.gowtham.hydrate.data.model.ReminderSlot
 import com.gowtham.hydrate.data.model.UserPreferences
 import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.ceil
@@ -20,6 +18,7 @@ class GenerateScheduleUseCase {
     operator fun invoke(
         preferences: UserPreferences,
         logs: List<WaterLogEntity>,
+        skippedTimestamps: Set<Long> = emptySet(),
         now: Instant = Instant.now(),
     ): List<ReminderSlot> {
         val zoneId = ZoneId.systemDefault()
@@ -52,14 +51,16 @@ class GenerateScheduleUseCase {
             }
             val current = (nowDateTime.isAfter(slotTime) || nowDateTime.isEqual(slotTime)) && nowDateTime.isBefore(nextSlot)
             val upcoming = nowDateTime.isBefore(slotTime)
+            val skipped = skippedTimestamps.contains(slotTime.atZone(zoneId).toInstant().toEpochMilli())
             ReminderSlot(
                 timestampMillis = slotTime.atZone(zoneId).toInstant().toEpochMilli(),
                 timeLabel = slotTime.format(timeFormatter),
                 amountMl = amount.coerceAtLeast(1),
                 cumulativeMl = ((index + 1) * cupSize).coerceAtMost(preferences.dailyGoalMl),
                 completed = completed,
-                current = current,
-                upcoming = upcoming,
+                current = if (skipped) false else current,
+                upcoming = if (skipped) false else upcoming,
+                skipped = skipped,
             )
         }
     }
