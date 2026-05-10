@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -20,31 +22,64 @@ class HydrationNotificationManager @Inject constructor(
 ) {
 
     companion object {
-        const val CHANNEL_ID = "hydrate_reminders"
+        const val CHANNEL_ID_SOUND = "hydrate_reminders_sound"
+        const val CHANNEL_ID_VIBRATION = "hydrate_reminders_vibration"
+        const val CHANNEL_ID_SUMMARY = "hydrate_lock_screen_summary"
         const val NOTIFICATION_ID = 7001
+        const val SUMMARY_NOTIFICATION_ID = 7300
         const val ACTION_I_DRANK = "com.gowtham.hydrate.action.I_DRANK"
         const val ACTION_SNOOZE = "com.gowtham.hydrate.action.SNOOZE"
         const val ACTION_SKIP = "com.gowtham.hydrate.action.SKIP"
         const val EXTRA_AMOUNT_ML = "extra_amount_ml"
         const val EXTRA_REQUEST_CODE = "extra_request_code"
+        const val EXTRA_TIMESTAMP_MILLIS = "extra_timestamp_millis"
     }
 
-    fun ensureChannel() {
+    fun ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Hydration reminders",
+
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+        val soundChannel = NotificationChannel(
+            CHANNEL_ID_SOUND,
+            "Hydration reminders (sound)",
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "Exact hydration reminder alerts"
+            description = "Hydration reminders with gentle sound"
             enableVibration(true)
+            setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION), audioAttributes)
         }
-        manager.createNotificationChannel(channel)
+
+        val vibrationOnlyChannel = NotificationChannel(
+            CHANNEL_ID_VIBRATION,
+            "Hydration reminders (vibration)",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = "Hydration reminders with vibration only"
+            enableVibration(true)
+            setSound(null, null)
+        }
+
+        val summaryChannel = NotificationChannel(
+            CHANNEL_ID_SUMMARY,
+            "Hydration lock screen summary",
+            NotificationManager.IMPORTANCE_LOW,
+        ).apply {
+            description = "Shows today's hydration progress on lock screen"
+            setSound(null, null)
+            enableVibration(false)
+        }
+
+        manager.createNotificationChannels(listOf(soundChannel, vibrationOnlyChannel, summaryChannel))
     }
 
-    fun showReminder(amountMl: Int, requestCode: Int) {
-        ensureChannel()
+    fun showReminder(amountMl: Int, requestCode: Int, slotTimestampMillis: Long, vibrationOnly: Boolean) {
+        ensureChannels()
+        val reminderChannelId = if (vibrationOnly) CHANNEL_ID_VIBRATION else CHANNEL_ID_SOUND
         val openIntent = Intent(context, MainActivity::class.java).apply {
             putExtra("route", "today")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -80,6 +115,7 @@ class HydrationNotificationManager @Inject constructor(
         val skipIntent = Intent(context, com.gowtham.hydrate.receivers.HydrationActionReceiver::class.java).apply {
             action = ACTION_SKIP
             putExtra(EXTRA_REQUEST_CODE, requestCode)
+            putExtra(EXTRA_TIMESTAMP_MILLIS, slotTimestampMillis)
         }
         val skipPendingIntent = PendingIntent.getBroadcast(
             context,
@@ -88,7 +124,7 @@ class HydrationNotificationManager @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, reminderChannelId)
             .setSmallIcon(R.drawable.ic_notification_drop)
             .setContentTitle("Time to Hydrate")
             .setContentText("Drink $amountMl ml of water.")
@@ -105,5 +141,34 @@ class HydrationNotificationManager @Inject constructor(
 
     fun cancel(requestCode: Int) {
         NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID + requestCode)
+    }
+
+    fun showLockScreenSummary(percent: Int, totalMl: Int, goalMl: Int) {
+        ensureChannels()
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            putExtra("route", "today")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val openPendingIntent = PendingIntent.getActivity(
+            context,
+            SUMMARY_NOTIFICATION_ID,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val summary = NotificationCompat.Builder(context, CHANNEL_ID_SUMMARY)
+            .setSmallIcon(R.drawable.ic_notification_drop)
+            .setContentTitle("Hydrate Today")
+            .setContentText("$percent% complete  ($totalMl/$goalMl ml)")
+            .setStyle(NotificationCompat.BigTextStyle().bigText("Today: $percent% complete ($totalMl/$goalMl ml). Keep sipping through the day."))
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(openPendingIntent)
+            .setAutoCancel(false)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(SUMMARY_NOTIFICATION_ID, summary)
     }
 }

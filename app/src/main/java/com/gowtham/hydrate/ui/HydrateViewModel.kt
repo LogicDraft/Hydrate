@@ -8,6 +8,7 @@ import com.gowtham.hydrate.data.model.HistorySummary
 import com.gowtham.hydrate.data.model.ReminderSlot
 import com.gowtham.hydrate.data.model.TodaySummary
 import com.gowtham.hydrate.data.model.UserPreferences
+import com.gowtham.hydrate.domain.scheduler.HydrationNotificationManager
 import com.gowtham.hydrate.data.repository.HydrationRepository
 import com.gowtham.hydrate.domain.scheduler.HydrationScheduler
 import com.gowtham.hydrate.domain.usecase.CalculateHistorySummaryUseCase
@@ -16,6 +17,8 @@ import com.gowtham.hydrate.domain.usecase.GenerateScheduleUseCase
 import com.gowtham.hydrate.domain.usecase.GetWeatherAwareSuggestionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +36,8 @@ data class HydrateUiState(
     val todayLogs: List<WaterLogEntity> = emptyList(),
     val recentStats: List<DailyStatsEntity> = emptyList(),
     val needsOnboarding: Boolean = true,
+    val showTabTips: Boolean = false,
+    val shouldCelebrateGoal: Boolean = false,
 )
 
 @HiltViewModel
@@ -43,6 +48,7 @@ class HydrateViewModel @Inject constructor(
     private val calculateHistorySummaryUseCase: CalculateHistorySummaryUseCase,
     private val getWeatherAwareSuggestionUseCase: GetWeatherAwareSuggestionUseCase,
     private val scheduler: HydrationScheduler,
+    private val notificationManager: HydrationNotificationManager,
 ) : ViewModel() {
 
     private val weatherSuggestion = MutableStateFlow<String?>(null)
@@ -52,8 +58,10 @@ class HydrateViewModel @Inject constructor(
         repository.skippedReminderTimestamps,
         repository.todayLogs,
         repository.recentStats,
+        repository.tabTipsSeen,
+        repository.dailyGoalCelebrationDate,
         weatherSuggestion,
-    ) { preferences, skipped, logs, stats, weatherText ->
+    ) { preferences, skipped, logs, stats, tipsSeen, celebrationDate, weatherText ->
         val schedule = generateScheduleUseCase(preferences, logs, skipped, Instant.now())
         val historySummary = calculateHistorySummaryUseCase(stats)
         val todaySummary = calculateTodaySummaryUseCase(
@@ -64,6 +72,8 @@ class HydrateViewModel @Inject constructor(
             weatherText,
             Instant.now(),
         )
+        val today = LocalDate.now(ZoneId.systemDefault()).toString()
+        val shouldCelebrateGoal = todaySummary.percent >= 100 && celebrationDate != today
         HydrateUiState(
             preferences = preferences,
             todaySummary = todaySummary,
@@ -72,11 +82,14 @@ class HydrateViewModel @Inject constructor(
             todayLogs = logs,
             recentStats = stats,
             needsOnboarding = !preferences.onboarded,
+            showTabTips = preferences.onboarded && !tipsSeen,
+            shouldCelebrateGoal = shouldCelebrateGoal,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HydrateUiState())
 
     init {
         refreshWeatherSuggestion()
+        observeLockScreenSummary()
     }
 
     fun savePreferences(preferences: UserPreferences) {
@@ -133,6 +146,19 @@ class HydrateViewModel @Inject constructor(
         }
     }
 
+    fun dismissTabTips() {
+        viewModelScope.launch {
+            repository.markTabTipsSeen()
+        }
+    }
+
+    fun acknowledgeGoalCelebrationShown() {
+        viewModelScope.launch {
+            val today = LocalDate.now(ZoneId.systemDefault()).toString()
+            repository.markGoalCelebratedForDate(today)
+        }
+    }
+
     private suspend fun syncReminders() {
         val preferences = repository.getPreferencesSnapshot()
         val logs = uiState.value.todayLogs
@@ -146,6 +172,18 @@ class HydrateViewModel @Inject constructor(
     private fun refreshWeatherSuggestion() {
         viewModelScope.launch {
             weatherSuggestion.value = getWeatherAwareSuggestionUseCase()
+        }
+    }
+
+    private fun observeLockScreenSummary() {
+        viewModelScope.launch {
+            uiState.collect { state ->
+                notificationManager.showLockScreenSummary(
+                    percent = state.todaySummary.percent,
+                    totalMl = state.todaySummary.totalMl,
+                    goalMl = state.todaySummary.goalMl,
+                )
+            }
         }
     }
 }

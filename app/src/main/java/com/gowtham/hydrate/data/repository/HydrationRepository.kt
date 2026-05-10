@@ -11,6 +11,8 @@ interface HydrationRepository {
     val skippedReminderTimestamps: Flow<Set<Long>>
     val todayLogs: Flow<List<WaterLogEntity>>
     val recentStats: Flow<List<DailyStatsEntity>>
+    val tabTipsSeen: Flow<Boolean>
+    val dailyGoalCelebrationDate: Flow<String?>
 
     suspend fun savePreferences(preferences: UserPreferences)
     suspend fun logWater(amountMl: Int, timestamp: Instant = Instant.now())
@@ -22,4 +24,6 @@ interface HydrationRepository {
     suspend fun updateOnboardingComplete()
     suspend fun getLatestLogTimestamp(): Instant?
     suspend fun getPreferencesSnapshot(): UserPreferences
+    suspend fun markTabTipsSeen()
+    suspend fun markGoalCelebratedForDate(date: String)
 }

@@ -11,6 +11,7 @@ import com.gowtham.hydrate.data.local.DailyStatsDao
 import com.gowtham.hydrate.data.local.DailyStatsEntity
 import com.gowtham.hydrate.data.local.WaterLogDao
 import com.gowtham.hydrate.data.local.WaterLogEntity
+import com.gowtham.hydrate.data.model.ReminderAlertMode
 import com.gowtham.hydrate.data.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -33,9 +34,12 @@ class HydrationRepositoryImpl @Inject constructor(
     private val dailyGoalKey = intPreferencesKey("daily_goal")
     private val cupSizeKey = intPreferencesKey("cup_size")
     private val notificationsEnabledKey = booleanPreferencesKey("notifications_enabled")
+    private val reminderAlertModeKey = stringPreferencesKey("reminder_alert_mode")
     private val snoozeMinutesKey = intPreferencesKey("snooze_minutes")
     private val onboardedKey = booleanPreferencesKey("onboarded")
     private val skippedSlotsKey = stringSetPreferencesKey("skipped_slots")
+    private val tabTipsSeenKey = booleanPreferencesKey("tab_tips_seen")
+    private val goalCelebrationDateKey = stringPreferencesKey("goal_celebration_date")
 
     private val zoneId = ZoneId.systemDefault()
     private val todayStartMillis = LocalDate.now(zoneId).atStartOfDay(zoneId).toInstant().toEpochMilli()
@@ -48,6 +52,9 @@ class HydrationRepositoryImpl @Inject constructor(
             dailyGoalMl = preferences[dailyGoalKey] ?: 2500,
             cupSizeMl = preferences[cupSizeKey] ?: 250,
             notificationsEnabled = preferences[notificationsEnabledKey] ?: true,
+            reminderAlertMode = preferences[reminderAlertModeKey]
+                ?.let { runCatching { ReminderAlertMode.valueOf(it) }.getOrNull() }
+                ?: ReminderAlertMode.GENTLE_SOUND,
             snoozeMinutes = preferences[snoozeMinutesKey] ?: 60,
             onboarded = preferences[onboardedKey] ?: false,
         )
@@ -56,6 +63,8 @@ class HydrationRepositoryImpl @Inject constructor(
     override val skippedReminderTimestamps: Flow<Set<Long>> = dataStore.data.map { preferences ->
         preferences[skippedSlotsKey].orEmpty().mapNotNull { it.toLongOrNull() }.toSet()
     }
+    override val tabTipsSeen: Flow<Boolean> = dataStore.data.map { it[tabTipsSeenKey] ?: false }
+    override val dailyGoalCelebrationDate: Flow<String?> = dataStore.data.map { it[goalCelebrationDateKey] }
 
     override val todayLogs: Flow<List<WaterLogEntity>> = waterLogDao.observeLogsBetween(todayStartMillis, tomorrowStartMillis)
     override val recentStats: Flow<List<DailyStatsEntity>> = dailyStatsDao.observeRecent(30)
@@ -67,6 +76,7 @@ class HydrationRepositoryImpl @Inject constructor(
             stored[dailyGoalKey] = preferences.dailyGoalMl
             stored[cupSizeKey] = preferences.cupSizeMl
             stored[notificationsEnabledKey] = preferences.notificationsEnabled
+            stored[reminderAlertModeKey] = preferences.reminderAlertMode.name
             stored[snoozeMinutesKey] = preferences.snoozeMinutes
             stored[onboardedKey] = preferences.onboarded
         }
@@ -130,6 +140,10 @@ class HydrationRepositoryImpl @Inject constructor(
         waterLogDao.deleteAll()
         dailyStatsDao.deleteAll()
         savePreferences(UserPreferences())
+        dataStore.edit { stored ->
+            stored[tabTipsSeenKey] = false
+            stored.remove(goalCelebrationDateKey)
+        }
     }
 
     override suspend fun updateOnboardingComplete() {
@@ -139,4 +153,16 @@ class HydrationRepositoryImpl @Inject constructor(
     override suspend fun getLatestLogTimestamp(): Instant? = waterLogDao.getLatest()?.timestampMillis?.let(Instant::ofEpochMilli)
 
     override suspend fun getPreferencesSnapshot(): UserPreferences = preferences.first()
+
+    override suspend fun markTabTipsSeen() {
+        dataStore.edit { stored ->
+            stored[tabTipsSeenKey] = true
+        }
+    }
+
+    override suspend fun markGoalCelebratedForDate(date: String) {
+        dataStore.edit { stored ->
+            stored[goalCelebrationDateKey] = date
+        }
+    }
 }

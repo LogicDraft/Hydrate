@@ -43,8 +43,22 @@ fun TodayScreen(
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
     onUndoLastLog: () -> Unit,
+    showTabTips: Boolean = false,
+    shouldCelebrateGoal: Boolean = false,
+    onDismissTabTips: () -> Unit = {},
+    onCelebrationDisplayed: () -> Unit = {},
 ) {
     var showUndo by remember { mutableStateOf(false) }
+    var showCelebration by remember { mutableStateOf(shouldCelebrateGoal) }
+
+    LaunchedEffect(shouldCelebrateGoal) {
+        if (shouldCelebrateGoal) {
+            showCelebration = true
+            delay(4_000)
+            showCelebration = false
+            onCelebrationDisplayed()
+        }
+    }
 
     LaunchedEffect(showUndo) {
         if (showUndo) {

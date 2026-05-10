@@ -39,6 +39,13 @@ class HydrationActionReceiver : BroadcastReceiver() {
                         )
                         scheduler.scheduleDailyReminders(updatedPreferences, schedule)
                         scheduler.scheduleMidnightReschedule()
+                        val totalMl = repository.todayLogs.first().sumOf { it.amountMl }
+                        val percent = if (updatedPreferences.dailyGoalMl > 0) {
+                            ((totalMl * 100.0) / updatedPreferences.dailyGoalMl).toInt().coerceIn(0, 200)
+                        } else {
+                            0
+                        }
+                        notificationManager.showLockScreenSummary(percent = percent, totalMl = totalMl, goalMl = updatedPreferences.dailyGoalMl)
                     }
                     HydrationNotificationManager.ACTION_SNOOZE -> {
                         val snoozeMillis = 15 * 60_000L
@@ -50,7 +57,7 @@ class HydrationActionReceiver : BroadcastReceiver() {
                     }
                     HydrationNotificationManager.ACTION_SKIP -> {
                         notificationManager.cancel(requestCode)
-                        val slotTimestamp = intent.getLongExtra(HydrationAlarmReceiver.EXTRA_TIMESTAMP_MILLIS, 0L)
+                        val slotTimestamp = intent.getLongExtra(HydrationNotificationManager.EXTRA_TIMESTAMP_MILLIS, 0L)
                         if (slotTimestamp != 0L) {
                             repository.skipReminderSlot(slotTimestamp)
                             scheduler.cancelSlotReminder(slotTimestamp)
@@ -62,6 +69,13 @@ class HydrationActionReceiver : BroadcastReceiver() {
                             )
                             scheduler.scheduleDailyReminders(updatedPreferences, schedule)
                             scheduler.scheduleMidnightReschedule()
+                            val totalMl = repository.todayLogs.first().sumOf { it.amountMl }
+                            val percent = if (updatedPreferences.dailyGoalMl > 0) {
+                                ((totalMl * 100.0) / updatedPreferences.dailyGoalMl).toInt().coerceIn(0, 200)
+                            } else {
+                                0
+                            }
+                            notificationManager.showLockScreenSummary(percent = percent, totalMl = totalMl, goalMl = updatedPreferences.dailyGoalMl)
                         }
                     }
                 }

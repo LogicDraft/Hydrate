@@ -9,12 +9,18 @@ enum class CupSize(val milliliters: Int, val label: String) {
     CUSTOM(0, "Custom")
 }
 
+enum class ReminderAlertMode {
+    GENTLE_SOUND,
+    VIBRATION_ONLY,
+}
+
 data class UserPreferences(
     val wakeTime: LocalTime = LocalTime.of(7, 0),
     val sleepTime: LocalTime = LocalTime.of(23, 0),
     val dailyGoalMl: Int = 2500,
     val cupSizeMl: Int = 250,
     val notificationsEnabled: Boolean = true,
+    val reminderAlertMode: ReminderAlertMode = ReminderAlertMode.GENTLE_SOUND,
     val snoozeMinutes: Int = 60,
     val onboarded: Boolean = false,
 )
