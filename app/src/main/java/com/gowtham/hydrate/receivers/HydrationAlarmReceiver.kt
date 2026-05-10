@@ -26,7 +26,9 @@ class HydrationAlarmReceiver : BroadcastReceiver() {
                 val amount = intent.getIntExtra(EXTRA_AMOUNT_ML, 250)
                 val requestCode = intent.getIntExtra(EXTRA_REQUEST_CODE, 0)
                 val latest = repository.getLatestLogTimestamp()
-                val shouldSkip = latest != null && Duration.between(latest, Instant.now()).toMinutes() < 20
+                val now = Instant.now()
+                val minutesSinceLastLog = latest?.let { Duration.between(it, now).toMinutes() }
+                val shouldSkip = minutesSinceLastLog != null && minutesSinceLastLog in 0..19
                 if (!shouldSkip) {
                     notificationManager.showReminder(amount, requestCode)
                 }

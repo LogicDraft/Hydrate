@@ -8,11 +8,11 @@ class CalculateHistorySummaryUseCase {
 
     operator fun invoke(stats: List<DailyStatsEntity>): HistorySummary {
         if (stats.isEmpty()) {
-            return HistorySummary(0, 0, 0, 0, 0)
+            return HistorySummary(0, 0, 0, 0, 0, 0)
         }
 
         val byDate = stats.associateBy { LocalDate.parse(it.date) }
-        val latestDate = byDate.keys.maxOrNull() ?: return HistorySummary(0, 0, 0, 0, 0)
+        val latestDate = byDate.keys.maxOrNull() ?: return HistorySummary(0, 0, 0, 0, 0, 0)
 
         var currentDate = latestDate
         while (!byDate.containsKey(currentDate) && currentDate.isAfter(latestDate.minusDays(7))) {
@@ -46,17 +46,18 @@ class CalculateHistorySummaryUseCase {
         }
 
         val bestDay = stats.maxByOrNull { it.totalMl }?.totalMl ?: 0
-        val average = stats.map { it.totalMl }.average().toInt()
 
         val weeklyDates = (0 until 7).map { latestDate.minusDays(it.toLong()) }
         val weeklyCompletion = weeklyDates.count { byDate[it]?.goalCompleted == true }
+        val weeklyAverage = weeklyDates.map { byDate[it]?.totalMl ?: 0 }.average().toInt()
         val weeklyPercent = ((weeklyCompletion / 7.0) * 100).toInt()
 
         return HistorySummary(
             currentStreak = currentStreak,
             longestStreak = longestStreak,
             bestDayMl = bestDay,
-            averageMl = average,
+            averageMl = weeklyAverage,
+            weeklyGoalHitDays = weeklyCompletion,
             weeklyCompletionPercent = weeklyPercent,
         )
     }

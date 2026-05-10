@@ -13,9 +13,11 @@ import com.gowtham.hydrate.domain.scheduler.HydrationScheduler
 import com.gowtham.hydrate.domain.usecase.CalculateHistorySummaryUseCase
 import com.gowtham.hydrate.domain.usecase.CalculateTodaySummaryUseCase
 import com.gowtham.hydrate.domain.usecase.GenerateScheduleUseCase
+import com.gowtham.hydrate.domain.usecase.GetWeatherAwareSuggestionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -25,9 +27,9 @@ import javax.inject.Inject
 
 data class HydrateUiState(
     val preferences: UserPreferences = UserPreferences(),
-    val todaySummary: TodaySummary = TodaySummary(0, 2500, 0, "Great start.", "--:--", "--", 0),
+    val todaySummary: TodaySummary = TodaySummary(0, 2500, 0, "Great start.", "--:--", "--", 0, null, null),
     val schedule: List<ReminderSlot> = emptyList(),
-    val historySummary: HistorySummary = HistorySummary(0, 0, 0, 0, 0),
+    val historySummary: HistorySummary = HistorySummary(0, 0, 0, 0, 0, 0),
     val todayLogs: List<WaterLogEntity> = emptyList(),
     val recentStats: List<DailyStatsEntity> = emptyList(),
     val needsOnboarding: Boolean = true,
@@ -39,18 +41,29 @@ class HydrateViewModel @Inject constructor(
     private val generateScheduleUseCase: GenerateScheduleUseCase,
     private val calculateTodaySummaryUseCase: CalculateTodaySummaryUseCase,
     private val calculateHistorySummaryUseCase: CalculateHistorySummaryUseCase,
+    private val getWeatherAwareSuggestionUseCase: GetWeatherAwareSuggestionUseCase,
     private val scheduler: HydrationScheduler,
 ) : ViewModel() {
+
+    private val weatherSuggestion = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<HydrateUiState> = combine(
         repository.preferences,
         repository.skippedReminderTimestamps,
         repository.todayLogs,
         repository.recentStats,
-    ) { preferences, skipped, logs, stats ->
+        weatherSuggestion,
+    ) { preferences, skipped, logs, stats, weatherText ->
         val schedule = generateScheduleUseCase(preferences, logs, skipped, Instant.now())
         val historySummary = calculateHistorySummaryUseCase(stats)
-        val todaySummary = calculateTodaySummaryUseCase(preferences, logs, schedule, historySummary, Instant.now())
+        val todaySummary = calculateTodaySummaryUseCase(
+            preferences,
+            logs,
+            schedule,
+            historySummary,
+            weatherText,
+            Instant.now(),
+        )
         HydrateUiState(
             preferences = preferences,
             todaySummary = todaySummary,
@@ -62,10 +75,15 @@ class HydrateViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HydrateUiState())
 
+    init {
+        refreshWeatherSuggestion()
+    }
+
     fun savePreferences(preferences: UserPreferences) {
         viewModelScope.launch {
             repository.savePreferences(preferences.copy(onboarded = true))
             repository.updateOnboardingComplete()
+            refreshWeatherSuggestion()
             syncReminders()
         }
     }
@@ -123,5 +141,11 @@ class HydrateViewModel @Inject constructor(
         scheduler.cancelAllReminders()
         scheduler.scheduleDailyReminders(preferences, schedule)
         scheduler.scheduleMidnightReschedule()
+    }
+
+    private fun refreshWeatherSuggestion() {
+        viewModelScope.launch {
+            weatherSuggestion.value = getWeatherAwareSuggestionUseCase()
+        }
     }
 }

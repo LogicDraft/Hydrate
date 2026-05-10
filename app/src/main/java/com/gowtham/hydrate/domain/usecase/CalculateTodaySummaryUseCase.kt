@@ -7,6 +7,8 @@ import com.gowtham.hydrate.data.model.TodaySummary
 import com.gowtham.hydrate.data.model.UserPreferences
 import java.time.Duration
 import java.time.Instant
+import kotlin.math.ceil
+import kotlin.math.max
 
 class CalculateTodaySummaryUseCase {
 
@@ -15,6 +17,7 @@ class CalculateTodaySummaryUseCase {
         logs: List<WaterLogEntity>,
         schedule: List<ReminderSlot>,
         historySummary: HistorySummary,
+        weatherSuggestion: String?,
         now: Instant = Instant.now(),
     ): TodaySummary {
         val totalMl = logs.sumOf { it.amountMl }
@@ -42,6 +45,18 @@ class CalculateTodaySummaryUseCase {
             }
         } ?: "--"
 
+        val targetByNow = schedule
+            .filter { Instant.ofEpochMilli(it.timestampMillis) <= now }
+            .sumOf { it.amountMl }
+        val behindMl = (targetByNow - totalMl).coerceAtLeast(0)
+        val cupSize = max(1, preferences.cupSizeMl)
+        val catchUpCups = ceil(behindMl / cupSize.toDouble()).toInt().coerceAtLeast(1)
+        val carryOverSuggestion = if (behindMl >= (cupSize / 2) && percent < 100) {
+            "You're $behindMl ml behind, drink $catchUpCups cups soon."
+        } else {
+            null
+        }
+
         return TodaySummary(
             totalMl = totalMl,
             goalMl = preferences.dailyGoalMl,
@@ -50,6 +65,8 @@ class CalculateTodaySummaryUseCase {
             nextReminderLabel = nextSlot?.timeLabel ?: "--:--",
             nextReminderCountdown = countdown,
             streakDays = historySummary.currentStreak,
+            carryOverSuggestion = carryOverSuggestion,
+            weatherSuggestion = weatherSuggestion,
         )
     }
 }

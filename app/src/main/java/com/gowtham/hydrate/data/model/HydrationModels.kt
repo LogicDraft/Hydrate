@@ -38,6 +38,8 @@ data class TodaySummary(
     val nextReminderLabel: String,
     val nextReminderCountdown: String,
     val streakDays: Int,
+    val carryOverSuggestion: String? = null,
+    val weatherSuggestion: String? = null,
 )
 
 data class HistorySummary(
@@ -45,5 +47,6 @@ data class HistorySummary(
     val longestStreak: Int,
     val bestDayMl: Int,
     val averageMl: Int,
+    val weeklyGoalHitDays: Int,
     val weeklyCompletionPercent: Int,
 )

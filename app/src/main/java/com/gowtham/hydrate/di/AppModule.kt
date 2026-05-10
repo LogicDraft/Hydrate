@@ -17,6 +17,7 @@ import com.gowtham.hydrate.domain.scheduler.HydrationSchedulerImpl
 import com.gowtham.hydrate.domain.usecase.CalculateHistorySummaryUseCase
 import com.gowtham.hydrate.domain.usecase.CalculateTodaySummaryUseCase
 import com.gowtham.hydrate.domain.usecase.GenerateScheduleUseCase
+import com.gowtham.hydrate.domain.usecase.GetWeatherAwareSuggestionUseCase
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -78,4 +79,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideCalculateHistorySummaryUseCase(): CalculateHistorySummaryUseCase = CalculateHistorySummaryUseCase()
+
+    @Provides
+    @Singleton
+    fun provideGetWeatherAwareSuggestionUseCase(): GetWeatherAwareSuggestionUseCase = GetWeatherAwareSuggestionUseCase()
 }
