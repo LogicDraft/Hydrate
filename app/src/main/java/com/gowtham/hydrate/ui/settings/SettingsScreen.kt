@@ -41,6 +41,7 @@ fun SettingsScreen(
     onResetToday: () -> Unit,
     onEraseData: () -> Unit,
     onBack: () -> Unit,
+    onOpenAbout: () -> Unit,
 ) {
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
     var wakeTime by remember { mutableStateOf(uiState.preferences.wakeTime) }
@@ -110,6 +111,12 @@ fun SettingsScreen(
         }
 
         Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
+            Text("About Developer")
+        }
     }
 }
 
