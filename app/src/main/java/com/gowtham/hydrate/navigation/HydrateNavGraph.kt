@@ -10,7 +10,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.runtime.collectAsState
 import com.gowtham.hydrate.ui.HydrateViewModel
-import com.gowtham.hydrate.ui.history.HistoryScreen
 import com.gowtham.hydrate.ui.onboarding.OnboardingScreen
 import com.gowtham.hydrate.ui.schedule.ScheduleScreen
 import com.gowtham.hydrate.ui.settings.AboutScreen
@@ -22,7 +21,6 @@ object HydrateRoutes {
     const val Onboarding = "onboarding"
     const val Today = "today"
     const val Schedule = "schedule"
-    const val History = "history"
     const val Settings = "settings"
     const val About = "about"
 }
@@ -66,7 +64,6 @@ fun HydrateNavGraph(
                 onDismissTabTips = viewModel::dismissTabTips,
                 onCelebrationDisplayed = viewModel::acknowledgeGoalCelebrationShown,
                 onOpenSchedule = { navController.navigate(HydrateRoutes.Schedule) },
-                onOpenHistory = { navController.navigate(HydrateRoutes.History) },
                 onOpenSettings = { navController.navigate(HydrateRoutes.Settings) },
             )
         }
@@ -78,7 +75,6 @@ fun HydrateNavGraph(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(HydrateRoutes.History) { HistoryScreen(uiState = uiState, onBack = { navController.popBackStack() }) }
         composable(HydrateRoutes.Settings) {
             SettingsScreen(
                 uiState = uiState,

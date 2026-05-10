@@ -160,7 +160,6 @@ fun TodayScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 StatCard(title = "Streak", value = "${uiState.historySummary.currentStreak}d", modifier = Modifier.weight(1f))
                 StatCard(title = "Average", value = "${uiState.historySummary.averageMl} ml", modifier = Modifier.weight(1f))
-                StatCard(title = "Best", value = "${uiState.historySummary.bestDayMl} ml", modifier = Modifier.weight(1f))
             }
 
             Card(
@@ -184,7 +183,6 @@ fun TodayScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onOpenSchedule, modifier = Modifier.weight(1f)) { Text("Schedule") }
-                OutlinedButton(onClick = onOpenHistory, modifier = Modifier.weight(1f)) { Text("History") }
                 Button(onClick = onOpenSettings, modifier = Modifier.weight(1f)) { Text("Settings") }
             }
             

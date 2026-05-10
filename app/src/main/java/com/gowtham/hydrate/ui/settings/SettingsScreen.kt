@@ -61,8 +61,11 @@ fun SettingsScreen(
             Text("Sleep ${sleepTime.format(timeFormatter)}")
         }
 
-        PreferenceCard(title = "Goal") {
+        val calculatedCups = if (cupSize > 0) dailyGoal / cupSize else 0
+
+        PreferenceCard(title = "Goal & Reminders") {
             OutlinedTextField(value = dailyGoal.toString(), onValueChange = { dailyGoal = it.filter(Char::isDigit).toIntOrNull() ?: dailyGoal }, label = { Text("Daily goal (ml)") }, modifier = Modifier.fillMaxWidth())
+            Text("This will generate roughly $calculatedCups reminders.", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 4.dp))
         }
 
         PreferenceCard(title = "Cup size") {
@@ -82,6 +85,15 @@ fun SettingsScreen(
                 FilterChip(selected = alertMode == ReminderAlertMode.GENTLE_SOUND, onClick = { alertMode = ReminderAlertMode.GENTLE_SOUND }, label = { Text("Gentle Sound") })
                 FilterChip(selected = alertMode == ReminderAlertMode.PHONE_RINGTONE, onClick = { alertMode = ReminderAlertMode.PHONE_RINGTONE }, label = { Text("Phone Ringtone") })
                 FilterChip(selected = alertMode == ReminderAlertMode.VIBRATION_ONLY, onClick = { alertMode = ReminderAlertMode.VIBRATION_ONLY }, label = { Text("Vibration Only") })
+            }
+        }
+
+        PreferenceCard(title = "Accountability Rules") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                RuleItem("🔒", "Schedule Lock", "Log only within ±15 min of a slot")
+                RuleItem("⏳", "Rate Limit", "20-min cooldown between logs")
+                RuleItem("✅", "Confirm Delay", "3-sec countdown before saving")
+                RuleItem("🚫", "Daily Cap", "Hard cap at goal + 20%")
             }
         }
 
@@ -131,6 +143,17 @@ private fun PreferenceCard(title: String, content: @Composable () -> Unit) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge)
             content()
+        }
+    }
+}
+
+@Composable
+private fun RuleItem(icon: String, label: String, desc: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+        Text(icon, style = MaterialTheme.typography.titleMedium)
+        Column {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

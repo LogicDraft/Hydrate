@@ -8,6 +8,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.isSystemInDarkTheme
 import android.os.Build
 
 private val DarkColorScheme = darkColorScheme(
@@ -24,8 +25,8 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun HydrateTheme(
-    darkTheme: Boolean = true, // Force dark theme by default, or use isSystemInDarkTheme() if they want Light Mode too. Google Apps support both. We will force dark based on the previous monochrome setting, but allow dynamic.
-    dynamicColor: Boolean = true, // True Google App feel uses dynamic color
+    darkTheme: Boolean = isSystemInDarkTheme(), 
+    dynamicColor: Boolean = true, 
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
