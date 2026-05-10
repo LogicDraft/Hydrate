@@ -155,7 +155,7 @@ private fun TimePickerRow(
     onTimeSelected: (LocalTime) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
-    val pickerState = rememberTimePickerState(hour = time.hour, minute = time.minute)
+    val pickerState = rememberTimePickerState(initialHour = time.hour, initialMinute = time.minute)
 
     androidx.compose.material3.OutlinedButton(onClick = { showPicker = true }, modifier = Modifier.fillMaxWidth()) {
         Text(label)

@@ -39,11 +39,12 @@ import com.gowtham.hydrate.data.model.ReminderSlot
 @Composable
 fun ProgressRing(progress: Float, size: Dp, strokeWidth: Dp) {
     val animatedProgress by animateFloatAsState(targetValue = progress.coerceIn(0f, 1f), label = "progress_ring")
+    val bgColor = MaterialTheme.colorScheme.surfaceVariant
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(size)) {
         Canvas(modifier = Modifier.fillMaxWidth()) {
             val strokePx = strokeWidth.toPx()
             drawArc(
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = bgColor,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,

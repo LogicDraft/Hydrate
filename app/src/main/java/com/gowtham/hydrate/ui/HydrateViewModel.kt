@@ -63,7 +63,14 @@ class HydrateViewModel @Inject constructor(
         repository.tabTipsSeen,
         repository.dailyGoalCelebrationDate,
         weatherSuggestion,
-    ) { preferences, skipped, logs, stats, tipsSeen, celebrationDate, weatherText ->
+    ) { array ->
+        val preferences = array[0] as UserPreferences
+        val skipped = array[1] as Set<Long>
+        val logs = array[2] as List<WaterLogEntity>
+        val stats = array[3] as List<DailyStatsEntity>
+        val tipsSeen = array[4] as Boolean
+        val celebrationDate = array[5] as String?
+        val weatherText = array[6] as String?
         val schedule = generateScheduleUseCase(preferences, logs, skipped, Instant.now())
         val historySummary = calculateHistorySummaryUseCase(stats)
         val todaySummary = calculateTodaySummaryUseCase(
