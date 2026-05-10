@@ -1,43 +1,137 @@
 package com.gowtham.hydrate.ui.today
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.gowtham.hydrate.data.local.WaterLogEntity
+import com.gowtham.hydrate.ui.HydrateUiState
+import com.gowtham.hydrate.ui.components.ProgressRing
+import com.gowtham.hydrate.ui.components.ReminderCountdown
+import com.gowtham.hydrate.ui.components.StreakBadge
+import com.gowtham.hydrate.ui.components.StatCard
+import com.gowtham.hydrate.ui.components.QuickAddButton
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun TodayScreen(
+    uiState: HydrateUiState,
+    onQuickAdd: (Int) -> Unit,
     onOpenSchedule: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
+    val logsFormatter = rememberTimeFormatter()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column {
-            Text("Today", style = MaterialTheme.typography.headlineLarge)
-            Text("Great start.", style = MaterialTheme.typography.bodyLarge)
+        HeaderSection(summary = uiState.todaySummary, streakDays = uiState.historySummary.currentStreak)
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            shape = MaterialTheme.shapes.extraLarge,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                ProgressRing(progress = uiState.todaySummary.percent / 100f, size = 220.dp, strokeWidth = 18.dp)
+                Text("${uiState.todaySummary.totalMl} / ${uiState.todaySummary.goalMl} ml", style = MaterialTheme.typography.headlineMedium)
+                Text("${uiState.todaySummary.percent}% complete", color = MaterialTheme.colorScheme.secondary)
+                Text(uiState.todaySummary.message, style = MaterialTheme.typography.titleLarge)
+                ReminderCountdown(label = uiState.todaySummary.nextReminderLabel, countdown = uiState.todaySummary.nextReminderCountdown)
+            }
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text("0%", style = MaterialTheme.typography.displayLarge)
-            Text("0 / 2500 ml", style = MaterialTheme.typography.bodyLarge)
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            QuickAddButton(label = "+1 Cup", onClick = { onQuickAdd(uiState.preferences.cupSizeMl) }, modifier = Modifier.weight(1f))
+            QuickAddButton(label = "+250 ml", onClick = { onQuickAdd(250) }, modifier = Modifier.weight(1f))
+            QuickAddButton(label = "+500 ml", onClick = { onQuickAdd(500) }, modifier = Modifier.weight(1f))
         }
+
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(onClick = onOpenSchedule, modifier = Modifier.weight(1f)) { Text("Schedule") }
-            Button(onClick = onOpenHistory, modifier = Modifier.weight(1f)) { Text("History") }
+            StatCard(title = "Streak", value = "${uiState.historySummary.currentStreak}d", modifier = Modifier.weight(1f))
+            StatCard(title = "Average", value = "${uiState.historySummary.averageMl} ml", modifier = Modifier.weight(1f))
+            StatCard(title = "Best", value = "${uiState.historySummary.bestDayMl} ml", modifier = Modifier.weight(1f))
+        }
+
+        StreakBadge(text = "${uiState.historySummary.currentStreak} day streak")
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            shape = MaterialTheme.shapes.extraLarge,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Today’s log", style = MaterialTheme.typography.titleLarge)
+                uiState.todayLogs.take(6).forEach { log ->
+                    LogRow(timestampMillis = log.timestampMillis, amountMl = log.amountMl)
+                }
+                if (uiState.todayLogs.isEmpty()) {
+                    Text("No water logged yet.", color = MaterialTheme.colorScheme.secondary)
+                }
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = onOpenSchedule, modifier = Modifier.weight(1f)) { Text("Schedule") }
+            OutlinedButton(onClick = onOpenHistory, modifier = Modifier.weight(1f)) { Text("History") }
             Button(onClick = onOpenSettings, modifier = Modifier.weight(1f)) { Text("Settings") }
         }
     }
 }
+
+@Composable
+private fun HeaderSection(summary: com.gowtham.hydrate.data.model.TodaySummary, streakDays: Int) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Column {
+            Text("Today", style = MaterialTheme.typography.displaySmall)
+            Text("Wake up, drink well, sleep light.", color = MaterialTheme.colorScheme.secondary)
+        }
+        StreakBadge(text = "$streakDays days")
+    }
+}
+
+@Composable
+private fun LogRow(timestampMillis: Long, amountMl: Int) {
+    val formatter = rememberTimeFormatter()
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(Instant.ofEpochMilli(timestampMillis).atZone(ZoneId.systemDefault()).toLocalTime().format(formatter))
+        Text("+$amountMl ml", color = MaterialTheme.colorScheme.secondary)
+    }
+}
+
+@Composable
+private fun rememberTimeFormatter(): DateTimeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
